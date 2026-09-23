@@ -206,6 +206,9 @@ export interface ILazerSpectatorEntry {
 
 export type ILazerSpectator =
     | {
+          roomID: number;
+          channelID: number;
+          requiredMods: CalculateMods;
           chat: ITourneyManagerChatItem[];
           spectatingClients: ILazerSpectatorEntry[];
       }
@@ -241,6 +244,10 @@ export type IRoomUser = {
 export type IRoom =
     | {
           roomID: number;
+          /** The osu! chat channel ID associated with this multiplayer room. */
+          channelID: number;
+          /** Mods required for every participant on the current playlist item. */
+          requiredMods: CalculateMods;
           users: IRoomUser[];
       }
     | string;

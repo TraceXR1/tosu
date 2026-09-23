@@ -298,6 +298,12 @@ interface TourneyIpcSpec {
 }
 
 export interface TourneyValues {
+    /** Multiplayer room identifier. */
+    roomID?: number;
+    /** osu! chat channel identifier for the multiplayer room. */
+    channelID?: number;
+    /** Mods required for every participant on the current playlist item. */
+    requiredMods?: SelectedMods;
     manager: TourneyManager;
     ipcClients: TourneyIpcClient[];
 }

@@ -5,7 +5,11 @@ import type { ILazerSpectator } from '@/memory/types';
 import { AbstractState } from '@/states';
 
 export class LazerMultiSpectating extends AbstractState {
-    lazerSpectatingData: ILazerSpectator;
+    lazerSpectatingData: ILazerSpectator = undefined;
+
+    resetState() {
+        this.lazerSpectatingData = undefined;
+    }
 
     @measureTime
     updateState() {
