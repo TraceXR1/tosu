@@ -508,6 +508,12 @@ export interface DirectPath {
 }
 
 export interface Tourney {
+    /** Multiplayer room identifier. */
+    roomID?: number;
+    /** osu! chat channel identifier for the multiplayer room. */
+    channelID?: number;
+    /** Mods required for every participant on the current playlist item. */
+    requiredMods?: CalculateMods;
     scoreVisible: boolean;
     starsVisible: boolean;
 

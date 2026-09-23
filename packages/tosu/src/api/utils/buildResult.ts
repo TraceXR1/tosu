@@ -277,11 +277,12 @@ const buildLazerTourneyData = (
     const mappedOsuTourneyClients = lazerSpectatingData.spectatingClients.map(
         (client) => {
             const currentMods =
-                global.status === GameState.play
-                    ? client.score!.mods
-                    : global.status === GameState.resultScreen
-                      ? ((client.resultScreen! as any).mods as CalculateMods)
-                      : global.menuMods;
+                client.score?.mods ??
+                (global.status === GameState.resultScreen
+                    ? ((client.resultScreen as any)?.mods as
+                          CalculateMods | undefined)
+                    : undefined) ??
+                global.menuMods;
 
             return {
                 team: client.team === 'red' ? 'left' : 'right',
@@ -365,6 +366,12 @@ const buildLazerTourneyData = (
     });
 
     return {
+        roomID: lazerSpectatingData.roomID,
+        channelID: lazerSpectatingData.channelID,
+        requiredMods: {
+            num: lazerSpectatingData.requiredMods.number,
+            str: lazerSpectatingData.requiredMods.name
+        },
         manager: {
             ipcState: global.status,
             bestOF: 0,

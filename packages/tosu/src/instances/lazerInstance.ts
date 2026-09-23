@@ -325,7 +325,11 @@ export class LazerInstance extends AbstractInstance {
                         break;
 
                     case GameState.lobby:
-                        lazerMultiSpectating.updateState();
+                        if (global.isMultiSpectating) {
+                            lazerMultiSpectating.updateState();
+                        } else {
+                            lazerMultiSpectating.resetState();
+                        }
 
                         break;
 

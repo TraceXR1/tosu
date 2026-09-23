@@ -164,9 +164,21 @@ export interface Offsets {
     };
     'osu.Game.Online.Multiplayer.MultiplayerRoom': {
         RoomID: number;
+        '<Settings>k__BackingField'?: number;
         '<ChannelID>k__BackingField': number;
         '<MatchState>k__BackingField': number;
         '<Users>k__BackingField': number;
+        '<Playlist>k__BackingField'?: number;
+    };
+    'osu.Game.Online.Multiplayer.MultiplayerRoomSettings'?: {
+        '<PlaylistItemId>k__BackingField': number;
+    };
+    'osu.Game.Online.Rooms.MultiplayerPlaylistItem'?: {
+        '<ID>k__BackingField': number;
+        '<RequiredMods>k__BackingField': number;
+    };
+    'osu.Game.Online.API.APIMod'?: {
+        '<Acronym>k__BackingField': number;
     };
     'osu.Game.Screens.Spectate.SpectatorScreen': {
         '<spectatorClient>k__BackingField': number;
@@ -3480,6 +3492,86 @@ export class LazerMemory extends AbstractMemory<LazerPatternData> {
         return [this.isLeaderboardVisible, personalScore, []];
     }
 
+    private readRequiredMods(room: number): CalculateMods {
+        const roomOffsets =
+            this.offsets['osu.Game.Online.Multiplayer.MultiplayerRoom'];
+        const settings = this.process.readIntPtr(
+            room + (roomOffsets['<Settings>k__BackingField'] ?? 0x8)
+        );
+
+        if (!settings) {
+            return Object.assign({}, defaultCalculatedMods);
+        }
+
+        const settingsOffsets =
+            this.offsets['osu.Game.Online.Multiplayer.MultiplayerRoomSettings'];
+        const playlistItemId = this.process.readLong(
+            settings +
+                (settingsOffsets?.['<PlaylistItemId>k__BackingField'] ?? 0x18)
+        );
+
+        if (!playlistItemId) {
+            return Object.assign({}, defaultCalculatedMods);
+        }
+
+        const playlist = this.process.readIntPtr(
+            room + (roomOffsets['<Playlist>k__BackingField'] ?? 0x28)
+        );
+
+        if (!playlist) {
+            return Object.assign({}, defaultCalculatedMods);
+        }
+
+        const playlistItemOffsets =
+            this.offsets['osu.Game.Online.Rooms.MultiplayerPlaylistItem'];
+        const playlistItemIdOffset =
+            playlistItemOffsets?.['<ID>k__BackingField'] ?? 0x38;
+        const requiredModsOffset =
+            playlistItemOffsets?.['<RequiredMods>k__BackingField'] ?? 0x28;
+        const acronymOffset =
+            this.offsets['osu.Game.Online.API.APIMod']?.[
+                '<Acronym>k__BackingField'
+            ] ?? 0x8;
+
+        for (const playlistItem of this.readListItems(playlist)) {
+            if (
+                this.process.readLong(playlistItem + playlistItemIdOffset) !==
+                playlistItemId
+            ) {
+                continue;
+            }
+
+            const requiredModsList = this.process.readIntPtr(
+                playlistItem + requiredModsOffset
+            );
+
+            if (!requiredModsList) {
+                return Object.assign({}, defaultCalculatedMods);
+            }
+
+            const requiredMods: { acronym: string }[] = [];
+
+            for (const mod of this.readListItems(requiredModsList)) {
+                if (!mod) continue;
+
+                const acronym = this.process.readSharpStringPtr(
+                    mod + acronymOffset
+                );
+
+                if (acronym) {
+                    requiredMods.push({ acronym });
+                }
+            }
+
+            const calculatedMods = calculateMods(requiredMods, true);
+            return calculatedMods instanceof Error
+                ? Object.assign({}, defaultCalculatedMods)
+                : calculatedMods;
+        }
+
+        return Object.assign({}, defaultCalculatedMods);
+    }
+
     readSpectatingData(): ILazerSpectator {
         const multiSpectatorScreen = this.currentScreen;
 
@@ -3507,6 +3599,19 @@ export class LazerMemory extends AbstractMemory<LazerPatternData> {
                 this.offsets['osu.Game.Online.Multiplayer.MultiplayerClient']
                     .room
         );
+
+        const roomId = this.process.readLong(
+            room +
+                this.offsets['osu.Game.Online.Multiplayer.MultiplayerRoom']
+                    .RoomID
+        );
+        const channelId = this.process.readInt(
+            room +
+                this.offsets['osu.Game.Online.Multiplayer.MultiplayerRoom'][
+                    '<ChannelID>k__BackingField'
+                ]
+        );
+        const requiredMods = this.readRequiredMods(room);
 
         const multiplayerUsers = this.process.readIntPtr(room + 0x10);
         const multiplayerUsersItems = this.process.readIntPtr(
@@ -3582,6 +3687,10 @@ export class LazerMemory extends AbstractMemory<LazerPatternData> {
 
             const userState = userStates[user.id];
 
+            if (!userState) {
+                continue;
+            }
+
             spectatingClients.push({
                 team: userState.team,
                 user,
@@ -3593,12 +3702,6 @@ export class LazerMemory extends AbstractMemory<LazerPatternData> {
             });
         }
 
-        const channelId = this.process.readInt(
-            room +
-                this.offsets['osu.Game.Online.Multiplayer.MultiplayerRoom'][
-                    '<ChannelID>k__BackingField'
-                ]
-        );
         const channelManager = this.process.readIntPtr(
             this.gameBase() + this.offsets['osu.Game.OsuGame'].channelManager
         );
@@ -3625,7 +3728,13 @@ export class LazerMemory extends AbstractMemory<LazerPatternData> {
         }
 
         if (multiChannel === 0) {
-            return { chat: [], spectatingClients };
+            return {
+                roomID: roomId,
+                channelID: channelId,
+                requiredMods,
+                chat: [],
+                spectatingClients
+            };
         }
 
         const chatItems: ITourneyManagerChatItem[] = [];
@@ -3670,7 +3779,13 @@ export class LazerMemory extends AbstractMemory<LazerPatternData> {
             });
         }
 
-        return { chat: chatItems, spectatingClients };
+        return {
+            roomID: roomId,
+            channelID: channelId,
+            requiredMods,
+            chat: chatItems,
+            spectatingClients
+        };
     }
 
     rankedPlay(): IRankedPlay {
@@ -3871,6 +3986,13 @@ export class LazerMemory extends AbstractMemory<LazerPatternData> {
 
         return {
             roomID: roomId,
+            channelID: this.process.readInt(
+                room +
+                    this.offsets['osu.Game.Online.Multiplayer.MultiplayerRoom'][
+                        '<ChannelID>k__BackingField'
+                    ]
+            ),
+            requiredMods: this.readRequiredMods(room),
             users
         };
     }

@@ -460,6 +460,9 @@ const buildLazerTourneyData = (
     }
 
     return {
+        roomID: lazerMultiSpectating.lazerSpectatingData.roomID,
+        channelID: lazerMultiSpectating.lazerSpectatingData.channelID,
+        requiredMods: lazerMultiSpectating.lazerSpectatingData.requiredMods,
         scoreVisible: global.status === GameState.lobby,
         starsVisible: false,
 
@@ -505,12 +508,12 @@ const buildLazerTourneyData = (
                 });
 
                 const currentMods =
-                    global.status === GameState.play
-                        ? client.score!.mods
-                        : global.status === GameState.resultScreen
-                          ? ((client.resultScreen! as any)
-                                .mods as CalculateMods)
-                          : global.menuMods;
+                    client.score?.mods ??
+                    (global.status === GameState.resultScreen
+                        ? ((client.resultScreen as any)?.mods as
+                              CalculateMods | undefined)
+                        : undefined) ??
+                    global.menuMods;
 
                 return {
                     ipcId: index,
