@@ -254,7 +254,8 @@ export const buildResult = (instanceManager: InstanceManager): ApiAnswer => {
         },
         tourney:
             osuInstance instanceof LazerInstance &&
-            global.status === GameState.lobby
+            (global.status === GameState.lobby ||
+                global.status === GameState.spectating)
                 ? buildLazerTourneyData(osuInstance)
                 : buildTourneyData(instanceManager)
     };
@@ -384,7 +385,7 @@ const buildLazerTourneyData = (
                 right: 0
             },
             bools: {
-                scoreVisible: global.status === GameState.lobby,
+                scoreVisible: global.status === GameState.spectating,
                 starsVisible: false
             },
             chat: mappedChat,

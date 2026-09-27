@@ -324,13 +324,12 @@ export class LazerInstance extends AbstractInstance {
                         resultScreen.updatePerformance();
                         break;
 
-                    case GameState.lobby:
-                        if (global.isMultiSpectating) {
-                            lazerMultiSpectating.updateState();
-                        } else {
-                            lazerMultiSpectating.resetState();
-                        }
+                    case GameState.spectating:
+                        lazerMultiSpectating.updateState();
+                        break;
 
+                    case GameState.lobby:
+                        lazerMultiSpectating.resetState();
                         break;
 
                     default:

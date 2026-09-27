@@ -3145,7 +3145,10 @@ export class LazerMemory extends AbstractMemory<LazerPatternData> {
         const isPlaying = this.player() !== 0;
 
         let isMultiSpectating = false;
-        if (this.status === GameState.lobby) {
+        if (
+            this.status === GameState.lobby ||
+            this.status === GameState.spectating
+        ) {
             isMultiSpectating = this.checkIfMultiSpectator(this.currentScreen);
         }
 
@@ -3237,7 +3240,9 @@ export class LazerMemory extends AbstractMemory<LazerPatternData> {
             );
 
             if (currentRoom) {
-                status = GameState.lobby;
+                status = this.checkIfMultiSpectator(this.currentScreen)
+                    ? GameState.spectating
+                    : GameState.lobby;
             }
         }
 
@@ -3493,6 +3498,45 @@ export class LazerMemory extends AbstractMemory<LazerPatternData> {
     }
 
     private readRequiredMods(room: number): CalculateMods {
+        try {
+            const mods = this.readPlaylistRequiredMods(room);
+            this.game.resetReportCount('requiredMods');
+            return mods;
+        } catch (exc) {
+            this.game.reportError(
+                'requiredMods',
+                10,
+                ClientType[this.game.client],
+                this.game.pid,
+                'Error reading multiplayer required mods:',
+                (exc as Error).message
+            );
+            return Object.assign({}, defaultCalculatedMods);
+        }
+    }
+
+    private readPlaylistCollection(
+        collection: number,
+        maxSize: number
+    ): number[] {
+        const methodTable = this.process.readIntPtr(collection);
+        // CLR marks both SZ arrays and multidimensional arrays in this category.
+        const isArray =
+            (this.process.readInt(methodTable) & 0x000c0000) === 0x00080000;
+        const size = this.process.readInt(collection + (isArray ? 0x8 : 0x10));
+        if (size < 0 || size > maxSize) {
+            throw new Error(`Invalid multiplayer collection size: ${size}`);
+        }
+        const items = isArray
+            ? collection
+            : this.process.readIntPtr(collection + 0x8);
+        if (size > 0 && !items) {
+            throw new Error('Missing multiplayer collection items');
+        }
+        return this.readItems(items, size);
+    }
+
+    private readPlaylistRequiredMods(room: number): CalculateMods {
         const roomOffsets =
             this.offsets['osu.Game.Online.Multiplayer.MultiplayerRoom'];
         const settings = this.process.readIntPtr(
@@ -3525,15 +3569,19 @@ export class LazerMemory extends AbstractMemory<LazerPatternData> {
         const playlistItemOffsets =
             this.offsets['osu.Game.Online.Rooms.MultiplayerPlaylistItem'];
         const playlistItemIdOffset =
-            playlistItemOffsets?.['<ID>k__BackingField'] ?? 0x38;
+            playlistItemOffsets?.['<ID>k__BackingField'] ?? 0x20;
         const requiredModsOffset =
-            playlistItemOffsets?.['<RequiredMods>k__BackingField'] ?? 0x28;
+            playlistItemOffsets?.['<RequiredMods>k__BackingField'] ?? 0x10;
         const acronymOffset =
             this.offsets['osu.Game.Online.API.APIMod']?.[
                 '<Acronym>k__BackingField'
             ] ?? 0x8;
 
-        for (const playlistItem of this.readListItems(playlist)) {
+        for (const playlistItem of this.readPlaylistCollection(
+            playlist,
+            10000
+        )) {
+            if (!playlistItem) continue;
             if (
                 this.process.readLong(playlistItem + playlistItemIdOffset) !==
                 playlistItemId
@@ -3551,7 +3599,10 @@ export class LazerMemory extends AbstractMemory<LazerPatternData> {
 
             const requiredMods: { acronym: string }[] = [];
 
-            for (const mod of this.readListItems(requiredModsList)) {
+            for (const mod of this.readPlaylistCollection(
+                requiredModsList,
+                128
+            )) {
                 if (!mod) continue;
 
                 const acronym = this.process.readSharpStringPtr(
