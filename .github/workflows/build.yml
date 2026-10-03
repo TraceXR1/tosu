@@ -56,9 +56,9 @@ jobs:
           cd packages/tosu/dist
           
           if [ "${{ matrix.os }}" = "windows-latest" ]; then
-            7z a "../../${{ matrix.archive_name }}" "${{ matrix.binary_name }}"
+            7z a "../../../${{ matrix.archive_name }}" "${{ matrix.binary_name }}"
           else
-            tar -czvf "../../${{ matrix.archive_name }}" "${{ matrix.binary_name }}"
+            tar -czvf "../../../${{ matrix.archive_name }}" "${{ matrix.binary_name }}"
           fi
 
       - name: Upload Release asset
