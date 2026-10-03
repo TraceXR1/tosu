@@ -32,6 +32,11 @@ jobs:
       - name: Checkout repository code
         uses: actions/checkout@v7
       
+      - name: Install pnpm
+        uses: pnpm/action-setup@v6
+        with:
+          version: 10
+
       - name: Setup Node.js
         uses: actions/setup-node@v7
         with:
@@ -39,7 +44,7 @@ jobs:
           cache: 'pnpm'
 
       - name: Install dependencies
-        run: pnpm install
+        run: pnpm install --frozen-lockfile
 
       - name: Build executable
         run: |
