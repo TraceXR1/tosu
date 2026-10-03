@@ -14,12 +14,12 @@ jobs:
           - os: ubuntu-latest
             build_script: build:linux
             binary_name: tosu
-            archive_name: tosu--linux-x64.tar.gz
+            archive_name: tosu-linux-x64.tar.gz
 
           - os: windows-latest
             build_script: build:win
             binary_name: tosu.exe
-            archive_name: tosu--win-x64.zip
+            archive_name: tosu-win-x64.zip
     
     runs-on: ${{ matrix.os }}
 
@@ -35,7 +35,7 @@ jobs:
       - name: Install pnpm
         uses: pnpm/action-setup@v6
         with:
-          version: 10
+          version: 10.10.0
 
       - name: Setup Node.js
         uses: actions/setup-node@v7
