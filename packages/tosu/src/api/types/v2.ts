@@ -25,6 +25,8 @@ export interface TosuAPi {
     tourney: Tourney | undefined;
     rankedPlay: IRankedPlay | undefined;
     room: IRoom | undefined;
+    /** Multiplayer chat channel ID, including when room data is not exposed. */
+    channelID?: number;
 }
 
 export interface Game {

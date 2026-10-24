@@ -117,6 +117,12 @@ export const buildResult = (instanceManager: InstanceManager): ApiAnswer => {
         'rankedPlay',
         'room'
     ]);
+    const lazerSpectatingData =
+        osuInstance instanceof LazerInstance
+            ? osuInstance.get('lazerMultiSpectating')?.lazerSpectatingData
+            : undefined;
+    const roomChannelID =
+        typeof room.info === 'object' ? room.info?.channelID : undefined;
 
     const currentMods =
         global.status === GameState.play
@@ -149,6 +155,7 @@ export const buildResult = (instanceManager: InstanceManager): ApiAnswer => {
         },
         rankedPlay: rankedPlay.info,
         room: room.info,
+        channelID: lazerSpectatingData?.channelID ?? roomChannelID,
         settings: {
             interfaceVisible: global.showInterface,
             replayUIVisible: global.isReplayUiHidden === false,
