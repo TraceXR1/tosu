@@ -1,7 +1,11 @@
 {
-  "author": "Mikhail Babynichev",
+  "author": {
+    "name": "Mikhail Babynichev",
+    "email": "i@kotrik.ru",
+    "url": "https://kotrik.ru/"
+  },
   "license": "GPL-3.0",
-  "version": "1.1",
+  "version": "4.26.3",
   "packageManager": "pnpm@10.10.0",
   "scripts": {
     "prepare": "husky install",

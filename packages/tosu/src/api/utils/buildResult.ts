@@ -62,7 +62,7 @@ export const buildResult = (instanceManager: InstanceManager): ApiAnswer => {
     ]);
 
     const currentMods =
-        global.status === GameState.play
+        global.status === GameState.play && !gameplay.isDefaultState
             ? gameplay.mods
             : global.status === GameState.resultScreen
               ? resultScreen.mods
@@ -455,7 +455,7 @@ const buildTourneyData = (
                 ]);
 
             const currentMods =
-                global.status === GameState.play
+                global.status === GameState.play && !gameplay.isDefaultState
                     ? gameplay.mods
                     : global.status === GameState.resultScreen
                       ? resultScreen.mods
